@@ -4,8 +4,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import postgres from 'postgres';
-import { signIn } from '@/auth';
-import { AuthError } from 'next-auth';
+import { createClient } from '@/lib/supabase/server';
  
 const sql = postgres(process.env.POSTGRES_URL!, { 
   ssl: 'require', 
@@ -126,21 +125,18 @@ export async function deleteInvoice(id: string) {
   }
 }
 
-export async function authenticate(
-  prevState: string | undefined,
-  formData: FormData,
-) {
-  try {
-    await signIn('credentials', formData);
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return 'Invalid credentials.';
-        default:
-          return 'Something went wrong.';
-      }
-    }
-    throw error;
-  }
+export async function authenticate(prevState: string | undefined, formData: FormData) {
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
+  });
+  if (error) return 'Invalid credentials.';
+  redirect('/dashboard');
+}
+
+export async function signOutAction() {
+  const supabase = await createClient();
+  await supabase.auth.signOut();
+  redirect('/login');
 }
