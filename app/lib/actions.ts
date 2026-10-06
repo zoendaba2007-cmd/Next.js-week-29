@@ -140,3 +140,53 @@ export async function signOutAction() {
   await supabase.auth.signOut();
   redirect('/login');
 }
+
+const ClientSchema = z.object({
+  full_name: z.string().min(1, { message: "Please enter the client's full name." }),
+  email: z.string().optional(),
+  company_name: z.string().optional(),
+});
+
+export type ClientState = {
+  errors?: {
+    full_name?: string[];
+    email?: string[];
+    company_name?: string[];
+  };
+  message?: string | null;
+};
+
+export async function createClientRecord(
+  prevState: ClientState,
+  formData: FormData,
+): Promise<ClientState> {
+  const validated = ClientSchema.safeParse({
+    full_name: formData.get('full_name'),
+    email: formData.get('email'),
+    company_name: formData.get('company_name'),
+  });
+
+  if (!validated.success) {
+    return {
+      errors: validated.error.flatten().fieldErrors,
+      message: 'Missing fields. Failed to create client.',
+    };
+  }
+  const { full_name, email, company_name } = validated.data;
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('clients').insert({
+    full_name,
+    email: email || null,
+    company_name: company_name || null,
+    // user_id is not sent: the column default auth.uid() fills it
+  });
+
+  if (error) {
+    console.error('Supabase error:', error);
+    return { message: `Database error ${error.code}: failed to create client.` };
+  }
+
+  revalidatePath('/dashboard/clients');
+  redirect('/dashboard/clients');
+}

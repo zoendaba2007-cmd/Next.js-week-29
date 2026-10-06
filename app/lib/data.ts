@@ -1,3 +1,4 @@
+import { createClient } from '@/lib/supabase/server';
 import postgres from 'postgres';
 import {
   CustomerField,
@@ -219,4 +220,27 @@ export async function fetchFilteredCustomers(query: string) {
     console.error('Database Error:', err);
     throw new Error('Failed to fetch customer table.');
   }
+}
+
+export type ClientRow = {
+  id: string;
+  user_id: string;
+  full_name: string;
+  email: string | null;
+  company_name: string | null;
+  created_at: string;
+};
+
+export async function fetchClients(): Promise<ClientRow[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('clients')
+    .select('id, user_id, full_name, email, company_name, created_at')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Supabase error:', error);
+    throw new Error('Failed to fetch clients.');
+  }
+  return data as ClientRow[];
 }
