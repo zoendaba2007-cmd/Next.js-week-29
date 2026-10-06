@@ -245,17 +245,3 @@ export async function fetchClients(): Promise<ClientRow[]> {
   return data as ClientRow[];
 }
 
-export type ClientsPerMonth = { month: string; clients: number };
-
-export async function fetchClientsPerMonth(): Promise<ClientsPerMonth[]> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from('clients_per_month')
-    .select('month, clients');
-
-  if (error) {
-    console.error('Supabase error:', error);
-    throw new Error('Failed to fetch clients per month.');
-  }
-  return data as ClientsPerMonth[];
-}
