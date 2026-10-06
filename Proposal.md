@@ -52,3 +52,53 @@ Both tables have RLS enabled with four policies each (select, insert, update, de
 ## Note
 
 The Learn course tables (`customers`, `invoices`) stay in the database untouched. The capstone tables use the names `clients` and `client_invoices` to avoid clashing with them.
+
+## Chart one plan
+
+**Question:** How many clients did I add each month?
+
+**Why it matters:** It shows whether the business is growing its client base over time, so the owner can see busy and slow months at a glance.
+
+**Data source:** the `clients` table only (entity one). No join is needed.
+- Column used: `created_at`
+- Each signed-in user sees only their own rows, because Row Level Security filters `clients` by `user_id`.
+
+**Query (view):** `public.clients_per_month`
+
+    select
+      date_trunc('month', created_at)::date as month,
+      count(*)::int as clients
+    from public.clients
+    group by 1
+    order by 1;
+
+The view is created with `security_invoker = true`, so the RLS policies on `clients` still apply and one user can never see another user's counts.
+
+**Chart type:** Bar chart.
+- X axis: month (for example "Aug 26")
+- Y axis: number of clients added (whole numbers)
+- Reason: bars suit comparing counts across separate categories such as months.
+
+**Library:** Recharts (`pnpm add recharts`).
+- Reason: it is built for React, works in a Client Component, and `ResponsiveContainer` makes the chart fit mobile and desktop.
+
+**Where it appears:** the `/dashboard` page, loaded by a Server Component through `fetchClientsPerMonth()` and drawn by the `ClientsChart` Client Component.
+
+**Edge cases:**
+- No clients yet: the chart shows the message "No clients yet."
+- Months with no new clients do not appear as bars.
+
+**Proof it works:**
+1. User one signs in and sees bars for their own months only.
+2. User two signs in and sees a different chart.
+3. The live site at https://week-29.vercel.app shows the same result.
+
+**Build steps:**
+1. Spread the sample `created_at` dates across several months.
+2. Create the `clients_per_month` view and test it as two users in SQL.
+3. Add `fetchClientsPerMonth()` to `app/lib/data.ts`.
+4. Build `app/ui/dashboard/clients-chart.tsx` with Recharts.
+5. Render the chart on `/dashboard`.
+6. Commit, push, and test on the live site.
+
+**Order of charts:** chart one uses `clients` only, so no swap was needed.
