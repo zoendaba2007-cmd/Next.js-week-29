@@ -39,3 +39,5 @@ create policy "patients: owner can delete"
 
 create index patients_user_id_idx on public.patients (user_id);
 
+alter publication supabase_realtime add table public.patients;
+

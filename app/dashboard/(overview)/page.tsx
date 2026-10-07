@@ -4,6 +4,7 @@ import LatestInvoices from '@/app/ui/dashboard/latest-invoices';
 import { lusitana } from '@/app/ui/fonts';
 import { Suspense } from 'react';
 import PatientsPerMonth from '@/app/ui/dashboard/patients-per-month';
+import RealtimeRefresh from '@/app/ui/realtime-refresh';
 import {
   RevenueChartSkeleton,
   LatestInvoicesSkeleton,
@@ -13,6 +14,7 @@ import {
 export default async function Page() {
   return (
     <main>
+      <RealtimeRefresh table="patients" />
       <h1 className={`${lusitana.className} mb-4 text-xl md:text-2xl`}>
         Dashboard
       </h1>

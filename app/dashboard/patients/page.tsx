@@ -1,12 +1,14 @@
 import { fetchPatients } from '@/app/lib/data';
 import { CreatePatient, UpdatePatient, DeletePatient } from '@/app/ui/patients/buttons';
 import { lusitana } from '@/app/ui/fonts';
+import RealtimeRefresh from '@/app/ui/realtime-refresh';
 
 export default async function Page() {
   const patients = await fetchPatients();
 
   return (
     <div className="w-full">
+      <RealtimeRefresh table="patients" />
       <div className="flex w-full items-center justify-between">
         <h1 className={`${lusitana.className} text-2xl`}>Patients</h1>
         <CreatePatient />

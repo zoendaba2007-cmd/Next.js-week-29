@@ -165,7 +165,7 @@ export async function createPatient(
     phone: formData.get('phone'),
     date_of_birth: formData.get('date_of_birth'),
   });
-  
+
   if (!validated.success) {
     return {
       errors: validated.error.flatten().fieldErrors,
@@ -234,3 +234,54 @@ export async function deletePatient(id: string) {
   revalidatePath('/dashboard'); // keeps the new-patients chart up to date
 }
 
+const MAX_BYTES = 2 * 1024 * 1024;
+const ALLOWED_TYPES: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'application/pdf': 'pdf',
+};
+
+export type UploadState = { message?: string | null };
+
+export async function uploadPatientFile(
+  id: string,
+  prevState: UploadState,
+  formData: FormData,
+): Promise<UploadState> {
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { message: 'Please choose a file.' };
+  }
+  if (!(file.type in ALLOWED_TYPES)) {
+    return { message: 'Only JPG, PNG or PDF files are allowed.' };
+  }
+  if (file.size > MAX_BYTES) {
+    return { message: 'The file is larger than 2 MB.' };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const path = `${user.id}/${id}/${crypto.randomUUID()}.${ALLOWED_TYPES[file.type]}`;
+
+  const { error } = await supabase.storage
+    .from('patient-files')
+    .upload(path, file, { contentType: file.type });
+  if (error) {
+    console.error('Storage error:', error);
+    return { message: 'Upload failed.' };
+  }
+
+  const { error: dbError } = await supabase
+    .from('patients')
+    .update({ file_path: path })
+    .eq('id', id);
+  if (dbError) {
+    await supabase.storage.from('patient-files').remove([path]); // avoid an orphan file
+    return { message: 'Could not save the file to the patient.' };
+  }
+
+  revalidatePath(`/dashboard/patients/${id}/edit`);
+  return { message: 'File uploaded.' };
+}

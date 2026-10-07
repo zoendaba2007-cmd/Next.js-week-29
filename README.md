@@ -45,4 +45,4 @@ Realtime in supabase
 Buckets in supabase
 - limit size
 - limit type of file
-- restrict who has premitions
+- restrict who has permission
