@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import postgres from 'postgres';
 import { createClient } from '@/lib/supabase/server';
+import { fromDateTimeLocal } from '@/app/lib/datetime';
  
 const sql = postgres(process.env.POSTGRES_URL!, { 
   ssl: 'require', 
@@ -131,7 +132,10 @@ export async function authenticate(prevState: string | undefined, formData: Form
     email: formData.get('email') as string,
     password: formData.get('password') as string,
   });
-  if (error) return 'Invalid credentials.';
+  if (error) {
+    console.error('Login error:', error.message, error.status);
+    return 'Invalid credentials.';
+  }
   redirect('/dashboard');
 }
 
@@ -284,4 +288,108 @@ export async function uploadPatientFile(
 
   revalidatePath(`/dashboard/patients/${id}/edit`);
   return { message: 'File uploaded.' };
+}
+
+const AppointmentFields = z.object({
+  patient_id: z.string().min(1, { message: 'Please select a patient.' }),
+  starts_at: z.string().min(16, { message: 'Please choose a date and time.' }),
+});
+const CreateAppointmentSchema = AppointmentFields;
+const UpdateAppointmentSchema = AppointmentFields.extend({
+  status: z.enum(['booked', 'done', 'no_show'], { message: 'Please choose a status.' }),
+});
+
+export type AppointmentState = {
+  errors?: {
+    patient_id?: string[];
+    starts_at?: string[];
+    status?: string[];
+  };
+  message?: string | null;
+};
+
+// 23503 = foreign_key_violation (the patient id exists nowhere)
+// 42501 = row-level security refused it (not your patient, or user_id sent by hand)
+function appointmentDbMessage(code: string | undefined, verb: string): string {
+  if (code === '23503') return 'That patient does not exist.';
+  if (code === '42501') return 'Not allowed: that patient is not yours.';
+  return `Database error ${code}: failed to ${verb} appointment.`;
+}
+
+export async function createAppointment(
+  prevState: AppointmentState,
+  formData: FormData,
+): Promise<AppointmentState> {
+  const validated = CreateAppointmentSchema.safeParse({
+    patient_id: formData.get('patient_id'),
+    starts_at: formData.get('starts_at'),
+  });
+  if (!validated.success) {
+    return {
+      errors: validated.error.flatten().fieldErrors,
+      message: 'Missing fields. Failed to create appointment.',
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from('appointments').insert({
+    patient_id: validated.data.patient_id,
+    starts_at: fromDateTimeLocal(validated.data.starts_at),
+    // user_id is NOT sent: the column default auth.uid() fills it
+  });
+  if (error) {
+    console.error('Supabase error:', error);
+    return { message: appointmentDbMessage(error.code, 'create') };
+  }
+
+  revalidatePath('/dashboard/appointments');
+  revalidatePath('/dashboard');
+  redirect('/dashboard/appointments');
+}
+
+export async function updateAppointment(
+  id: string,
+  prevState: AppointmentState,
+  formData: FormData,
+): Promise<AppointmentState> {
+  const validated = UpdateAppointmentSchema.safeParse({
+    patient_id: formData.get('patient_id'),
+    starts_at: formData.get('starts_at'),
+    status: formData.get('status'),
+  });
+  if (!validated.success) {
+    return {
+      errors: validated.error.flatten().fieldErrors,
+      message: 'Missing fields. Failed to update appointment.',
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('appointments')
+    .update({
+      patient_id: validated.data.patient_id,
+      starts_at: fromDateTimeLocal(validated.data.starts_at),
+      status: validated.data.status,
+    })
+    .eq('id', id);
+  if (error) {
+    console.error('Supabase error:', error);
+    return { message: appointmentDbMessage(error.code, 'update') };
+  }
+
+  revalidatePath('/dashboard/appointments');
+  revalidatePath('/dashboard');
+  redirect('/dashboard/appointments');
+}
+
+export async function deleteAppointment(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from('appointments').delete().eq('id', id);
+  if (error) {
+    console.error('Supabase error:', error);
+    throw new Error(`Database error ${error.code}: failed to delete appointment.`);
+  }
+  revalidatePath('/dashboard/appointments');
+  revalidatePath('/dashboard');
 }

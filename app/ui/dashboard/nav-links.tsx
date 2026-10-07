@@ -6,6 +6,7 @@ import {
   HeartIcon,
   DocumentDuplicateIcon,
   BuildingOfficeIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -22,6 +23,7 @@ const links = [
   },
   { name: 'Customers', href: '/dashboard/customers', icon: UserGroupIcon },
   { name: 'Patients', href: '/dashboard/patients', icon: HeartIcon },
+  { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarDaysIcon },
 ];
 
 export default function NavLinks() {

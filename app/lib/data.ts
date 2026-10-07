@@ -260,3 +260,55 @@ export async function fetchPatientById(id: string): Promise<Patient | null> {
   return (data as Patient | null) ?? null;
 }
 
+export type AppointmentStatus = 'booked' | 'done' | 'no_show';
+
+export type Appointment = {
+  id: string;
+  user_id: string;
+  patient_id: string;
+  starts_at: string;
+  status: AppointmentStatus;
+  created_at: string;
+  patients: { full_name: string } | null; // joined through the foreign key; RLS on patients applies
+};
+
+// RLS returns only YOUR patients, so the dropdown can never list someone else's
+export async function fetchPatientOptions(): Promise<{ id: string; full_name: string }[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('patients')
+    .select('id, full_name')
+    .order('full_name');
+  if (error) {
+    console.error('Supabase error:', error);
+    throw new Error('Failed to fetch patients.');
+  }
+  return data ?? [];
+}
+
+export async function fetchAppointments(): Promise<Appointment[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('id, user_id, patient_id, starts_at, status, created_at, patients(full_name)')
+    .order('starts_at', { ascending: false });
+  if (error) {
+    console.error('Supabase error:', error);
+    throw new Error('Failed to fetch appointments.');
+  }
+  return (data ?? []) as unknown as Appointment[];
+}
+
+export async function fetchAppointmentById(id: string): Promise<Appointment | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('appointments')
+    .select('id, user_id, patient_id, starts_at, status, created_at, patients(full_name)')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) {
+    console.error('Supabase error:', error);
+    throw new Error('Failed to fetch appointment.');
+  }
+  return (data as unknown as Appointment | null) ?? null;
+}

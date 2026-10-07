@@ -5,6 +5,7 @@ import { lusitana } from '@/app/ui/fonts';
 import { Suspense } from 'react';
 import PatientsPerMonth from '@/app/ui/dashboard/patients-per-month';
 import RealtimeRefresh from '@/app/ui/realtime-refresh';
+import AppointmentsByStatus from '@/app/ui/dashboard/appointments-by-status';
 import {
   RevenueChartSkeleton,
   LatestInvoicesSkeleton,
@@ -29,6 +30,14 @@ export default async function Page() {
         </Suspense>
         <Suspense fallback={<LatestInvoicesSkeleton />}>
           <LatestInvoices />
+        </Suspense>
+      </div>
+      <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-4 lg:grid-cols-8">
+       <Suspense fallback={<RevenueChartSkeleton />}>
+         <PatientsPerMonth />
+        </Suspense>
+        <Suspense fallback={<RevenueChartSkeleton />}>
+          <AppointmentsByStatus />
         </Suspense>
       </div>
     </main>
