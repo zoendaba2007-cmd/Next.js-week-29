@@ -6,65 +6,43 @@ For more information, see the [course curriculum](https://nextjs.org/learn) on t
 
 # This is additional features I add
 
-# Acme Dashboard
+# Family Clinic Dashboard
 
-An invoicing dashboard built with Next.js (App Router), Tailwind CSS and Supabase. Signed-in users manage their own clients and invoices, and Row Level Security keeps each user's data private.
-
+A dashboard for a small family practice, built with Next.js (App Router), Tailwind CSS and Supabase.
+Signed-in users manage their own patients, and Row Level Security keeps each user's data private.
 Built from the Next.js Learn dashboard course, then extended with Supabase Auth, RLS and charts.
 
-**Live site:** _add your Vercel URL here_
+**Live site:** https://week-29.vercel.app
 
 ## Tech stack
-
-- Next.js (App Router, Server Components, Server Actions)
-- Tailwind CSS
+- Next.js (Server Components, Server Actions), Tailwind CSS
 - Supabase (Auth and Postgres with Row Level Security)
-- Zod for form validation
-- pnpm
+- Zod for validation, Recharts for charts, pnpm
 
 ## Features
-
-- Sign in and sign out with Supabase Auth
-- `/dashboard` redirects to `/login` when signed out
-- Clients: list, create, edit, delete
-- Client invoices: list, create, edit, delete
-- Form validation with accessible error messages
-- Error handling with `error.tsx` and `not-found.tsx`
+- Sign in and sign out with Supabase Auth; `/dashboard` redirects to `/login` when signed out
+- Patients: list, create, edit, delete
+- Chart one: new patients per month (last 6 months)
+- Accessible form errors, `error.tsx` and `not-found.tsx`
 - Row Level Security: each user only sees their own rows
 
 ## Run it locally
+1. `pnpm install` (run `pnpm approve-builds` if pnpm reports ignored build scripts)
+2. Create `.env` in the project root:
 
-1. Install dependencies:
-
-   ```bash
-   pnpm install
-   ```
-
-   If pnpm reports ignored build scripts, run `pnpm approve-builds` and approve the listed packages.
-
-2. Create a `.env` file in the project root:
-
-   ```
    NEXT_PUBLIC_SUPABASE_URL=your-project-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-key
-   ```
 
-   Never commit `.env`. It is listed in `.gitignore`.
+   Never commit `.env`.
+3. Run the SQL in `supabase/` in the Supabase SQL Editor (`patients.sql`, then `patients_per_month.sql`)
+4. `pnpm dev`, then open http://localhost:3000
 
-3. Create the tables by running the SQL in the `supabase/` folder in the Supabase SQL Editor.
-
-4. Start the dev server:
-
-   ```bash
-   pnpm dev
-   ```
-
-5. Open http://localhost:3000.
-
-## Database
-
-The SQL for each table, including its RLS policies, is in the `supabase/` folder. See `PROPOSAL.md` for the entities and charts.
+See `PROPOSAL.md` for the entities and charts.
 
 ## Notes
-
-_If you swapped the order of your charts, say so here._
+Chart one uses `patients` only, so the charts were not swapped.
+Realtime in supabase
+Buckets in supabase
+- limit size
+- limit type of file
+- restrict who has premitions

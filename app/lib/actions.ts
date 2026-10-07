@@ -141,52 +141,96 @@ export async function signOutAction() {
   redirect('/login');
 }
 
-const ClientSchema = z.object({
-  full_name: z.string().min(1, { message: "Please enter the client's full name." }),
-  email: z.string().optional(),
-  company_name: z.string().optional(),
+const PatientSchema = z.object({
+  full_name: z.string().min(1, { message: "Please enter the patient's full name." }),
+  phone: z.string().optional(),
+  date_of_birth: z.string().optional(),
 });
 
-export type ClientState = {
+export type PatientState = {
   errors?: {
     full_name?: string[];
-    email?: string[];
-    company_name?: string[];
+    phone?: string[];
+    date_of_birth?: string[];
   };
   message?: string | null;
 };
 
-export async function createClientRecord(
-  prevState: ClientState,
+export async function createPatient(
+  prevState: PatientState,
   formData: FormData,
-): Promise<ClientState> {
-  const validated = ClientSchema.safeParse({
+): Promise<PatientState> {
+  const validated = PatientSchema.safeParse({
     full_name: formData.get('full_name'),
-    email: formData.get('email'),
-    company_name: formData.get('company_name'),
+    phone: formData.get('phone'),
+    date_of_birth: formData.get('date_of_birth'),
   });
-
+  
   if (!validated.success) {
     return {
       errors: validated.error.flatten().fieldErrors,
-      message: 'Missing fields. Failed to create client.',
+      message: 'Missing fields. Failed to create patient.',
     };
   }
-  const { full_name, email, company_name } = validated.data;
+  const { full_name, phone, date_of_birth } = validated.data;
 
   const supabase = await createClient();
-  const { error } = await supabase.from('clients').insert({
+  const { error } = await supabase.from('patients').insert({
     full_name,
-    email: email || null,
-    company_name: company_name || null,
+    phone: phone || null,
+    date_of_birth: date_of_birth || null,
     // user_id is not sent: the column default auth.uid() fills it
   });
-
   if (error) {
     console.error('Supabase error:', error);
-    return { message: `Database error ${error.code}: failed to create client.` };
+    return { message: `Database error ${error.code}: failed to create patient.` };
   }
 
-  revalidatePath('/dashboard/clients');
-  redirect('/dashboard/clients');
+  revalidatePath('/dashboard/patients');
+  revalidatePath('/dashboard');
+  redirect('/dashboard/patients');
 }
+
+export async function updatePatient(
+  id: string,
+  prevState: PatientState,
+  formData: FormData,
+): Promise<PatientState> {
+  const validated = PatientSchema.safeParse({
+    full_name: formData.get('full_name'),
+    phone: formData.get('phone'),
+    date_of_birth: formData.get('date_of_birth'),
+  });
+  if (!validated.success) {
+    return {
+      errors: validated.error.flatten().fieldErrors,
+      message: 'Missing fields. Failed to update patient.',
+    };
+  }
+  const { full_name, phone, date_of_birth } = validated.data;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('patients')
+    .update({ full_name, phone: phone || null, date_of_birth: date_of_birth || null })
+    .eq('id', id);
+  if (error) {
+    console.error('Supabase error:', error);
+    return { message: `Database error ${error.code}: failed to update patient.` };
+  }
+
+  revalidatePath('/dashboard/patients');
+  redirect('/dashboard/patients');
+}
+
+export async function deletePatient(id: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from('patients').delete().eq('id', id);
+  if (error) {
+    console.error('Supabase error:', error);
+    throw new Error(`Database error ${error.code}: failed to delete patient.`);
+  }
+  revalidatePath('/dashboard/patients');
+  revalidatePath('/dashboard'); // keeps the new-patients chart up to date
+}
+

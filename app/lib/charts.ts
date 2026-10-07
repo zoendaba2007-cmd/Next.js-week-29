@@ -1,16 +1,16 @@
 import { createClient } from '@/lib/supabase/server';
 
-export interface ClientsPerMonthRow {
+export interface PatientsPerMonthRow {
   label: string;
-  new_clients: number;
+  new_patients: number;
 }
 
-export async function fetchClientsPerMonth(): Promise<ClientsPerMonthRow[]> {
+export async function fetchPatientsPerMonth(): Promise<PatientsPerMonthRow[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from('clients_per_month')
-    .select('label, new_clients')
+    .from('patients_per_month')
+    .select('label, new_patients')
     .order('month_start', { ascending: true });
   if (error) throw new Error(error.message);
-  return (data ?? []) as ClientsPerMonthRow[];
+  return (data ?? []) as PatientsPerMonthRow[];
 }
