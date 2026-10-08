@@ -39,6 +39,9 @@ Built from the Next.js Learn dashboard course, then extended with Supabase Auth,
 
 See `PROPOSAL.md` for the entities and charts.
 
+## Known gaps
+See section 7 of `PROPOSAL.md`: double booking, cascade delete, time zone.
+
 ## Notes
 Chart one uses `patients` only, so the charts were not swapped.
 Realtime in supabase
@@ -46,3 +49,10 @@ Buckets in supabase
 - limit size
 - limit type of file
 - restrict who has permission
+
+What is defined as done?
+- Create an acceptence criter
+
+Create a roadmap for ideas that you want to add to the project
+
+For today, I need to do smoke testing against the Proposal.md file

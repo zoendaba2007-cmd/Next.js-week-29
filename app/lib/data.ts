@@ -229,13 +229,14 @@ export type Patient = {
   phone: string | null;
   date_of_birth: string | null;
   created_at: string;
+  file_path: string | null;
 };
 
 export async function fetchPatients(): Promise<Patient[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('patients')
-    .select('id, user_id, full_name, phone, date_of_birth, created_at')
+    .select('id, user_id, full_name, phone, date_of_birth, created_at, file_path')
     .order('created_at', { ascending: false });
 
   if (error) {
@@ -249,7 +250,7 @@ export async function fetchPatientById(id: string): Promise<Patient | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('patients')
-    .select('id, user_id, full_name, phone, date_of_birth, created_at')
+    .select('id, user_id, full_name, phone, date_of_birth, created_at, file_path')
     .eq('id', id)
     .maybeSingle();
 

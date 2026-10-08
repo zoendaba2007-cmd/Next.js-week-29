@@ -37,39 +37,10 @@ A "tomorrow" page listing booked appointments with each patient's phone number.
 Online booking by patients, sending messages, medical aid claims,
 more than one practice, a mobile app.
 
-
-## Chart one plan
-
-**Question:** Is the practice growing? How many new patients joined each month?
-
-**Who acts on it:** the owner decides whether to open a second consulting day.
-
-**Data source:** the `patients` table only (entity one). No join.
-- Column used: `created_at`
-- Each signed-in user sees only their own rows, because RLS filters `patients` by `user_id`.
-
-**Query (view):** `public.patients_per_month`, created with `security_invoker = true` so the RLS
-policies on `patients` still apply. It returns the last six months, with 0 for quiet months
-(columns: `month_start`, `label`, `new_patients`).
-
-**Chart type:** bar chart. One bar per month, so counts can be compared across months.
-- X axis: month ("Mon YYYY"), labelled "Month"
-- Y axis: new patients (count), starting at zero, whole numbers
-
-**Library:** Recharts (`pnpm add recharts react-is`). It is built for React, runs in a Client
-Component, and `ResponsiveContainer` fits mobile and desktop.
-
-**Where it appears:** `/dashboard`, fetched by the `PatientsPerMonth` Server Component through the
-Supabase server client, and drawn by the `PatientsPerMonthChart` Client Component.
-
-**Honesty checklist:** title states the question; both axes labelled with units; bars start at zero;
-an empty state when there are no rows; one "so what" line naming who acts.
-
-**Empty state:** if the six-month total is 0, the page shows "No patients in the last six months yet."
-
-**Proof it works:**
-1. User one signs in and sees bars for their own patients only.
-2. User two signs in and sees a different chart.
-3. https://week-29.vercel.app shows the same.
-
-**Order of charts:** chart one needs only `patients`, so no swap was needed.
+## 7. Known gaps
+- **Double booking:** two people can book the same time slot at the same moment, and both succeed. The app
+  assumes one calendar owner. A fix would be an exclusion constraint on overlapping time ranges, so the
+  database refuses the second booking, with a clear message to the person who lost. Not built this week.
+- **Cascade delete:** deleting a patient also deletes their appointments (`on delete cascade`). A real
+  practice would keep medical records, so it would drop the cascade and block the delete instead.
+- **Time zone:** times are entered as South African time (+02:00, no daylight saving).

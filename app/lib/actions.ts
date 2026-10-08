@@ -229,14 +229,27 @@ export async function updatePatient(
 
 export async function deletePatient(id: string) {
   const supabase = await createClient();
+
+  const { data: patient } = await supabase
+    .from('patients')
+    .select('file_path')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase.from('patients').delete().eq('id', id);
   if (error) {
     console.error('Supabase error:', error);
     throw new Error(`Database error ${error.code}: failed to delete patient.`);
   }
+
+  if (patient?.file_path) {
+    await supabase.storage.from('patient-files').remove([patient.file_path]);
+  }
+
   revalidatePath('/dashboard/patients');
-  revalidatePath('/dashboard'); // keeps the new-patients chart up to date
+  revalidatePath('/dashboard');
 }
+
 
 const MAX_BYTES = 2 * 1024 * 1024;
 const ALLOWED_TYPES: Record<string, string> = {
@@ -246,6 +259,15 @@ const ALLOWED_TYPES: Record<string, string> = {
 };
 
 export type UploadState = { message?: string | null };
+
+// A browser decides the type from the file NAME, so also check the first bytes of the file itself.
+function matchesSignature(type: string, bytes: Uint8Array): boolean {
+  const starts = (sig: number[]) => sig.every((b, i) => bytes[i] === b);
+  if (type === 'application/pdf') return starts([0x25, 0x50, 0x44, 0x46, 0x2d]); // %PDF-
+  if (type === 'image/png') return starts([0x89, 0x50, 0x4e, 0x47]);
+  if (type === 'image/jpeg') return starts([0xff, 0xd8, 0xff]);
+  return false;
+}
 
 export async function uploadPatientFile(
   id: string,
@@ -261,6 +283,11 @@ export async function uploadPatientFile(
   }
   if (file.size > MAX_BYTES) {
     return { message: 'The file is larger than 2 MB.' };
+  }
+
+  const head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  if (!matchesSignature(file.type, head)) {
+    return { message: 'The file content does not match its type.' };
   }
 
   const supabase = await createClient();
@@ -393,3 +420,81 @@ export async function deleteAppointment(id: string) {
   revalidatePath('/dashboard/appointments');
   revalidatePath('/dashboard');
 }
+
+const MAX_BYTES = 2 * 1024 * 1024;
+const ALLOWED_TYPES: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'application/pdf': 'pdf',
+};
+
+// A browser decides the type from the file NAME, so also check the first bytes of the file itself.
+function matchesSignature(type: string, bytes: Uint8Array): boolean {
+  const starts = (sig: number[]) => sig.every((b, i) => bytes[i] === b);
+  if (type === 'application/pdf') return starts([0x25, 0x50, 0x44, 0x46, 0x2d]); // %PDF-
+  if (type === 'image/png') return starts([0x89, 0x50, 0x4e, 0x47]);
+  if (type === 'image/jpeg') return starts([0xff, 0xd8, 0xff]);
+  return false;
+}
+
+export type UploadState = { message?: string | null };
+
+export async function uploadPatientFile(
+  id: string,
+  prevState: UploadState,
+  formData: FormData,
+): Promise<UploadState> {
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { message: 'Please choose a file.' };
+  }
+  if (!(file.type in ALLOWED_TYPES)) {
+    return { message: 'Only JPG, PNG or PDF files are allowed.' };
+  }
+  if (file.size > MAX_BYTES) {
+    return { message: 'The file is larger than 2 MB.' };
+  }
+  const head = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  if (!matchesSignature(file.type, head)) {
+    return { message: 'The file content does not match its type.' };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  // the patient must be visible to this user (RLS), and we need the old file to replace it
+  const { data: patient } = await supabase
+    .from('patients')
+    .select('file_path')
+    .eq('id', id)
+    .maybeSingle();
+  if (!patient) return { message: 'Patient not found.' };
+
+  const path = `${user.id}/${id}/${crypto.randomUUID()}.${ALLOWED_TYPES[file.type]}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from('patient-files')
+    .upload(path, file, { contentType: file.type });
+  if (uploadError) {
+    console.error('Storage error:', uploadError);
+    return { message: 'Upload failed.' };
+  }
+
+  const { error: dbError } = await supabase
+    .from('patients')
+    .update({ file_path: path })
+    .eq('id', id);
+  if (dbError) {
+    await supabase.storage.from('patient-files').remove([path]); // no orphan file
+    return { message: 'Could not save the file to the patient.' };
+  }
+
+  if (patient.file_path) {
+    await supabase.storage.from('patient-files').remove([patient.file_path]); // one file per patient
+  }
+
+  revalidatePath(`/dashboard/patients/${id}/edit`);
+  return { message: 'File uploaded.' };
+}
+

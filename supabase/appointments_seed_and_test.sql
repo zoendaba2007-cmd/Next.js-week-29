@@ -1,18 +1,36 @@
+-- DO NOT commit this file with real ids filled in.
 -- Replace <user one id> and <user two id> with the ids from Authentication -> Users.
 
--- 1. Seed 18 appointments this month for user one's patients (the SQL Editor is postgres, so user_id is set by hand)
+-- 1. Seed 45 appointments this month across all three statuses (the SQL Editor is postgres and bypasses RLS,
+--    so the rows take user_id and patient ids from YOUR OWN patients; nothing is typed by hand except your user id)
+--    Weighted about 3:1 towards done, with a realistic share of no_show.
+--    If you already ran an earlier seed, clear it first:  delete from public.appointments where user_id = '<user one id>';
 insert into public.appointments (user_id, patient_id, starts_at, status)
 select
-  '<user one id>'::uuid,
-  p.id,
-  date_trunc('month', now()) + (g * interval '1 day') + interval '9 hours',
-  case when g % 6 = 0 then 'no_show' when g % 3 = 0 then 'booked' else 'done' end
-from public.patients p
-cross join generate_series(1, 9) as g
-where p.user_id = '<user one id>'
-limit 18;
+  s.user_id,
+  s.patient_id,
+  s.starts_at,
+  case s.rn % 8
+    when 0 then 'no_show'      -- 1 in 8
+    when 1 then 'booked'       -- 2 in 8
+    when 2 then 'booked'
+    else 'done'                -- 5 in 8
+  end
+from (
+  select
+    p.user_id,
+    p.id as patient_id,
+    date_trunc('month', now())
+      + make_interval(days => (random() * 27)::int, hours => 8 + (random() * 8)::int) as starts_at,
+    row_number() over (order by random()) as rn
+  from public.patients p
+  cross join generate_series(1, 20) as n
+  where p.user_id = '<user one id>'
+) s
+order by s.rn
+limit 45;                     -- keeps the total between 30 and 60 however many patients you have
 
-select a.status, count(*) from public.appointments a group by 1;   -- all users (postgres bypasses RLS)
+select status, count(*) from public.appointments group by status order by status;   -- want all three statuses
 
 -- 2. As user one: sees only their own appointments
 begin;
