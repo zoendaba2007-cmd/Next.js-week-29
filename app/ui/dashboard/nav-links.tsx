@@ -8,6 +8,7 @@ import {
   BuildingOfficeIcon,
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
+import type { Role } from '@/app/lib/auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
@@ -15,23 +16,20 @@ import clsx from 'clsx';
 // Map of links to display in the side navigation.
 // Depending on the size of the application, this would be stored in a database.
 const links = [
-  { name: 'Home', href: '/dashboard', icon: HomeIcon },
-  {
-    name: 'Invoices',
-    href: '/dashboard/invoices',
-    icon: DocumentDuplicateIcon,
-  },
-  { name: 'Customers', href: '/dashboard/customers', icon: UserGroupIcon },
-  { name: 'Patients', href: '/dashboard/patients', icon: HeartIcon },
-  { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarDaysIcon },
+  { name: 'Home', href: '/dashboard', icon: HomeIcon, roles: ['practice', 'finance_manager'] },
+  { name: 'Patients', href: '/dashboard/patients', icon: HeartIcon, roles: ['practice', 'finance_manager'] },
+  { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarDaysIcon, roles: ['practice', 'finance_manager'] },
+  { name: 'Invoices', href: '/dashboard/invoices', icon: DocumentDuplicateIcon, roles: ['finance_manager'] },
+  { name: 'Customers', href: '/dashboard/customers', icon: UserGroupIcon, roles: ['finance_manager'] },
 ];
 
-export default function NavLinks() {
+export default function NavLinks({ role }: { role: Role }) {
+  const visible = links.filter((l) => l.roles.includes(role));
   const pathname = usePathname();
 
   return (
     <>
-      {links.map((link) => {
+      {visible.map((link) => {
         const LinkIcon = link.icon;
         return (
           <Link

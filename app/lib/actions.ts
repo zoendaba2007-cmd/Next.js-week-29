@@ -1,5 +1,6 @@
 'use server';
 
+import { requireFinanceManager } from '@/app/lib/auth';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -41,6 +42,7 @@ export type State = {
 };
  
 export async function createInvoice(prevState: State, formData: FormData) {
+  await requireFinanceManager();
   const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
@@ -84,6 +86,7 @@ export async function updateInvoice(
   prevState: State,
   formData: FormData,
 ) {
+  await requireFinanceManager();
   const validatedFields = UpdateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
@@ -115,6 +118,7 @@ export async function updateInvoice(
 }
 
 export async function deleteInvoice(id: string) {
+  await requireFinanceManager();
   try {
     await sql`DELETE FROM invoices WHERE id = ${id}`;
     revalidatePath('/dashboard/invoices');
