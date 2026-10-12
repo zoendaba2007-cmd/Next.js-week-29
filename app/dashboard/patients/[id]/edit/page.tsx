@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import { fetchPatientById } from '@/app/lib/data';
+import { createClient } from '@/lib/supabase/server';
 import EditForm from '@/app/ui/patients/edit-form';
 import UploadForm from '@/app/ui/patients/upload-form';
-import { createClient } from '@/lib/supabase/server';
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
@@ -12,28 +12,31 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     notFound();
   }
 
-    let fileUrl: string | null = null;
-    if (patient.file_path) {
+  // A private bucket has no permanent URL: make a signed link that stops working after 60 seconds
+  let fileUrl: string | null = null;
+  if (patient.file_path) {
     const supabase = await createClient();
     const { data } = await supabase.storage
-        .from('patient-files')
-        .createSignedUrl(patient.file_path, 60);
+      .from('patient-files')
+      .createSignedUrl(patient.file_path, 60);
     fileUrl = data?.signedUrl ?? null;
-    }
+  }
 
   return (
     <main>
       <h1 className="mb-6 text-2xl">Edit patient</h1>
       <EditForm patient={patient} />
+
       {fileUrl && (
-      <p className="mt-6 text-sm">
+        <p className="mt-6 text-sm">
           <a href={fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">
-          View current file
+            View current file
           </a>{' '}
           (link expires in 60 seconds)
-      </p>
+        </p>
       )}
-    <UploadForm patientId={patient.id} />
+      <UploadForm patientId={patient.id} />
     </main>
   );
 }
+
