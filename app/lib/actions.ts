@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 import postgres from 'postgres';
 import { createClient } from '@/lib/supabase/server';
 import { fromDateTimeLocal } from '@/app/lib/datetime';
-import { requireFinanceManager } from '@/app/lib/auth';
+
 
 const sql = postgres(process.env.POSTGRES_URL!, { 
   ssl: 'require', 

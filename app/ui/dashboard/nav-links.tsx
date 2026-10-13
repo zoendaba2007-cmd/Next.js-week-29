@@ -11,7 +11,6 @@ import type { Role } from '@/app/lib/auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
-import type { Role } from '@/app/lib/auth';
 
 const links = [
   { name: 'Home', href: '/dashboard', icon: HomeIcon, roles: ['practice', 'finance_manager'] },
