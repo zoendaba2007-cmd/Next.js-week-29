@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import {
   CustomerField,
-  CustomersTableType,
   InvoiceForm,
   InvoicesTable,
   Revenue,
@@ -37,15 +36,24 @@ export async function fetchLatestInvoices() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('invoices')
-      .select('amount, id, customers!inner(name, image_url, email)')
+      .select('amount, id, customer_id')
       .order('date', { ascending: false })
       .limit(5);
     if (error) throw error;
 
-    const latestInvoices = (data ?? []).map((invoice) => {
-      const customer = Array.isArray(invoice.customers)
-        ? invoice.customers[0]
-        : invoice.customers;
+    const invoices = data ?? [];
+    const customerIds = [...new Set(invoices.map((invoice) => invoice.customer_id))];
+    const { data: customers, error: customersError } = customerIds.length
+      ? await supabase
+          .from('customers')
+          .select('id, name, image_url, email')
+          .in('id', customerIds)
+      : { data: [], error: null };
+    if (customersError) throw customersError;
+
+    const customersById = new Map((customers ?? []).map((customer) => [customer.id, customer]));
+    const latestInvoices = invoices.map((invoice) => {
+      const customer = customersById.get(invoice.customer_id);
       if (!customer) {
         throw new Error(`Invoice ${invoice.id} has no related customer.`);
       }
@@ -165,35 +173,56 @@ export async function fetchFilteredCustomers(query: string) {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from('customers')
-      .select('id, name, email, image_url, invoices(amount, status)')
+      .select('id, name, email, image_url')
       .order('name', { ascending: true });
     if (error) throw error;
 
     const normalizedQuery = query.toLocaleLowerCase();
-    const customers = ((data ?? []) as unknown as (CustomersTableType & {
-      invoices: { amount: number; status: 'paid' | 'pending' }[];
-    })[])
+    const matchingCustomers = (data ?? [])
       .filter((customer) =>
         `${customer.name} ${customer.email}`.toLocaleLowerCase().includes(normalizedQuery),
-      )
-      .map((customer) => {
-        const pending = customer.invoices
-          .filter((invoice) => invoice.status === 'pending')
-          .reduce((total, invoice) => total + invoice.amount, 0);
-        const paid = customer.invoices
-          .filter((invoice) => invoice.status === 'paid')
-          .reduce((total, invoice) => total + invoice.amount, 0);
+      );
+    const customerIds = matchingCustomers.map((customer) => customer.id);
+    const { data: invoices, error: invoicesError } = customerIds.length
+      ? await supabase
+          .from('invoices')
+          .select('customer_id, amount, status')
+          .in('customer_id', customerIds)
+      : { data: [], error: null };
+    if (invoicesError) throw invoicesError;
 
-        return {
-          id: customer.id,
-          name: customer.name,
-          email: customer.email,
-          image_url: customer.image_url,
-          total_invoices: customer.invoices.length,
-          total_pending: formatCurrency(pending),
-          total_paid: formatCurrency(paid),
-        };
-      });
+    const totalsByCustomer = new Map<
+      string,
+      { count: number; pending: number; paid: number }
+    >();
+    for (const invoice of invoices ?? []) {
+      const totals = totalsByCustomer.get(invoice.customer_id) ?? {
+        count: 0,
+        pending: 0,
+        paid: 0,
+      };
+      totals.count += 1;
+      if (invoice.status === 'pending') totals.pending += invoice.amount;
+      if (invoice.status === 'paid') totals.paid += invoice.amount;
+      totalsByCustomer.set(invoice.customer_id, totals);
+    }
+
+    const customers = matchingCustomers.map((customer) => {
+      const totals = totalsByCustomer.get(customer.id) ?? {
+        count: 0,
+        pending: 0,
+        paid: 0,
+      };
+      return {
+        id: customer.id,
+        name: customer.name,
+        email: customer.email,
+        image_url: customer.image_url,
+        total_invoices: totals.count,
+        total_pending: formatCurrency(totals.pending),
+        total_paid: formatCurrency(totals.paid),
+      };
+    });
 
     return customers;
   } catch (err) {
@@ -208,26 +237,36 @@ type InvoiceRowWithCustomer = {
   amount: number;
   date: string;
   status: 'pending' | 'paid';
-  customers: {
-    name: string;
-    email: string;
-    image_url: string;
-  } | null;
 };
 
 async function getInvoiceRows(): Promise<InvoicesTable[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('invoices')
-    .select('id, customer_id, amount, date, status, customers!inner(name, email, image_url)')
+    .select('id, customer_id, amount, date, status')
     .order('date', { ascending: false });
   if (error) {
     console.error('Supabase error:', error);
     throw new Error('Failed to fetch invoices.');
   }
 
-  return ((data ?? []) as unknown as InvoiceRowWithCustomer[]).map((invoice) => {
-    if (!invoice.customers) {
+  const invoices = (data ?? []) as InvoiceRowWithCustomer[];
+  const customerIds = [...new Set(invoices.map((invoice) => invoice.customer_id))];
+  const { data: customers, error: customersError } = customerIds.length
+    ? await supabase
+        .from('customers')
+        .select('id, name, email, image_url')
+        .in('id', customerIds)
+    : { data: [], error: null };
+  if (customersError) {
+    console.error('Supabase error:', customersError);
+    throw new Error('Failed to fetch invoice customers.');
+  }
+
+  const customersById = new Map((customers ?? []).map((customer) => [customer.id, customer]));
+  return invoices.map((invoice) => {
+    const customer = customersById.get(invoice.customer_id);
+    if (!customer) {
       throw new Error(`Invoice ${invoice.id} has no related customer.`);
     }
     return {
@@ -236,9 +275,9 @@ async function getInvoiceRows(): Promise<InvoicesTable[]> {
       amount: invoice.amount,
       date: invoice.date,
       status: invoice.status,
-      name: invoice.customers.name,
-      email: invoice.customers.email,
-      image_url: invoice.customers.image_url,
+      name: customer.name,
+      email: customer.email,
+      image_url: customer.image_url,
     };
   });
 }
