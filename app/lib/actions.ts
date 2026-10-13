@@ -4,17 +4,10 @@ import { requireFinanceManager } from '@/app/lib/auth';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import postgres from 'postgres';
 import { createClient } from '@/lib/supabase/server';
 import { fromDateTimeLocal } from '@/app/lib/datetime';
 
 
-const sql = postgres(process.env.POSTGRES_URL!, { 
-  ssl: 'require', 
-  prepare: false,
-  max: 1,
-});
- 
 const FormSchema = z.object({
   id: z.string(),
   customerId: z.string({
@@ -63,15 +56,15 @@ export async function createInvoice(prevState: State, formData: FormData) {
   const amountInCents = amount * 100;
   const date = new Date().toISOString().split('T')[0];
 
-  // Insert data into the database
-  try {
-  await sql`
-    INSERT INTO invoices (customer_id, amount, status, date)
-    VALUES (${customerId}, ${amountInCents}, ${status}, ${date})
-  `;
-  } catch (error) {
-    // If a database error occurs, return a more specific error.
-    console.error(error);
+  const supabase = await createClient();
+  const { error } = await supabase.from('invoices').insert({
+    customer_id: customerId,
+    amount: amountInCents,
+    status,
+    date,
+  });
+  if (error) {
+    console.error('Supabase error:', error);
     return {
       message: 'Database Error: Failed to Create Invoice.',
     };
@@ -104,13 +97,13 @@ export async function updateInvoice(
   const { customerId, amount, status } = validatedFields.data;
   const amountInCents = amount * 100;
  
-  try {
-    await sql`
-      UPDATE invoices
-      SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-      WHERE id = ${id}
-    `;
-  } catch (error) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from('invoices')
+    .update({ customer_id: customerId, amount: amountInCents, status })
+    .eq('id', id);
+  if (error) {
+    console.error('Supabase error:', error);
     return { message: 'Database Error: Failed to Update Invoice.' };
   }
  
@@ -120,15 +113,15 @@ export async function updateInvoice(
 
 export async function deleteInvoice(id: string) {
   await requireFinanceManager();
-  try {
-    await sql`DELETE FROM invoices WHERE id = ${id}`;
-    revalidatePath('/dashboard/invoices');
-  } catch (error) {
-    console.error(error);
-    throw new Error('Database Error: Failed to Delete Invoice.', {
+  const supabase = await createClient();
+  const { error } = await supabase.from('invoices').delete().eq('id', id);
+  if (error) {
+    console.error('Supabase error:', error);
+    throw new Error(`Database Error: Failed to Delete Invoice (${error.code}).`, {
       cause: error,
     });
   }
+  revalidatePath('/dashboard/invoices');
 }
 
 export async function authenticate(prevState: string | undefined, formData: FormData) {
