@@ -6,7 +6,8 @@ import { redirect } from 'next/navigation';
 import postgres from 'postgres';
 import { createClient } from '@/lib/supabase/server';
 import { fromDateTimeLocal } from '@/app/lib/datetime';
- 
+import { requireFinanceManager } from '@/app/lib/auth';
+
 const sql = postgres(process.env.POSTGRES_URL!, { 
   ssl: 'require', 
   prepare: false,
@@ -41,6 +42,7 @@ export type State = {
 };
  
 export async function createInvoice(prevState: State, formData: FormData) {
+  await requireFinanceManager();
   const validatedFields = CreateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
@@ -84,6 +86,7 @@ export async function updateInvoice(
   prevState: State,
   formData: FormData,
 ) {
+  await requireFinanceManager();
   const validatedFields = UpdateInvoice.safeParse({
     customerId: formData.get('customerId'),
     amount: formData.get('amount'),
@@ -115,6 +118,7 @@ export async function updateInvoice(
 }
 
 export async function deleteInvoice(id: string) {
+  await requireFinanceManager();
   try {
     await sql`DELETE FROM invoices WHERE id = ${id}`;
     revalidatePath('/dashboard/invoices');

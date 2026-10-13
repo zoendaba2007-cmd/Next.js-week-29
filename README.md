@@ -9,13 +9,26 @@ Email: demo@<your-project>.example
 Password: <a throwaway password used nowhere else>
 A demo-only account with seed data; not a real person.
 
+Finance manager demo login (sees Invoices and Customers as well)
+Email: finance@<your-project>.example
+Password: <a different throwaway password>
+
 ## What it does
 - Sign in and out; every page under /dashboard redirects to the login page when you are signed out.
 - Patients and appointments: list, create, edit, delete. An appointment belongs to one of your patients.
 - Two charts on the dashboard (see below), built from your own rows.
-- Each user sees only their own data (Row Level Security in the database, not just hidden buttons).
+- Each user sees only their own patients and appointments (Row Level Security in the database, not just hidden buttons).
+- A finance manager role sees the course's Invoices and Customers pages and can create, edit and delete invoices; ordinary users cannot open them.
 - Lists and charts update by themselves when a row changes in another window (Realtime).
 - One private file per patient (a referral letter or ID photo), limited to JPG, PNG or PDF and 2 MB.
+
+## Roles
+| Role | Patients, appointments, charts, files | Invoices and Customers |
+|---|---|---|
+| practice user (default) | own rows only | no access: redirected to the dashboard |
+| finance manager | own rows only (same as a practice user) | full access: read, and create, edit, delete invoices |
+
+A user is a finance manager only if a row exists for them in the user_roles table. Roles are assigned from the SQL Editor; there is no policy that lets a user write to that table, so nobody can promote themselves. The finance manager deliberately does not see other users' patients, because those are health records and finance does not need clinical detail.
 
 ## The two questions the charts answer
 Entities: patients, appointments (each appointment points at a patient)
@@ -32,7 +45,7 @@ Next.js (App Router, Server Components, Server Actions), TypeScript, Tailwind CS
    NEXT_PUBLIC_SUPABASE_ANON_KEY   (holds the publishable key)
    POSTGRES_URL   (only for the sample Invoices and Customers pages from the Next.js course)
 3. In the Supabase SQL Editor, run the files in the supabase/ folder in this order:
-   patients.sql, patients_per_month.sql, appointments.sql, appointments_by_status.sql, patient_files.sql
+   patients.sql, patients_per_month.sql, appointments.sql, appointments_by_status.sql, patient_files.sql, finance_role.sql
 4. In Supabase, create a user under Authentication -> Users with Auto Confirm ticked.
 5. Run pnpm dev and open http://localhost:3000.
 
@@ -53,6 +66,7 @@ Next.js (App Router, Server Components, Server Actions), TypeScript, Tailwind CS
 - [ ] 8. Empty create form shows messages, saves nothing
 - [ ] 9. Unknown URL (including /seed) shows the not-found page
 - [ ] 10. Sign out works; .env.local is not on GitHub
+- [ ] F. Finance manager sees Invoices and Customers and can edit invoices; user one is redirected away from them
 - [ ] R. Realtime: an insert in window A updates window B within a second
 - [ ] S. Storage: upload and signed link work; user two cannot open user one's file; the bucket is private
 RLS: user B cannot see or edit user A's patients or appointments (checked <date>).
@@ -78,18 +92,18 @@ RLS: user B cannot see or edit user A's patients or appointments (checked <date>
 **Storage.** One file per patient in the bucket patient-files: private (no public URL), 2 MB limit, JPG, PNG or PDF only. Files live under a folder named with the owner's user id, and four policies on storage.objects let a user read, upload, replace and delete only inside their own folder. The app checks type, size and the file's first bytes before uploading, shows the file through a signed link that expires after 60 seconds, and deletes the file when the patient is deleted. A text file renamed to .pdf was accepted in the first test, which is why the first-bytes check was added.
 
 ## Known limitations
-- Only "you own the row" is enforced. The proposal mentions a front-desk role with fewer rights, but it is not built: every signed-in user has full rights over their own rows.
+- Only two roles exist: a practice user (own rows only) and a finance manager. There is no finer permission, for example a front-desk role that can create but not delete.
 - Two people can book the same appointment slot; the app assumes one calendar owner.
 - Deleting a patient also deletes their appointments (on delete cascade). A real practice would keep records and block the delete instead.
 - Times are entered in South African time (+02:00, no daylight saving).
 - Storage: one file per patient, replaced on each upload; no virus scan.
-- The sample Invoices and Customers pages from the Next.js course read through a direct database connection and are not behind Row Level Security. They hold sample data only.
+- The finance role on Invoices and Customers is enforced by a guard on each page and Server Action. Those pages still query through a direct database connection, which bypasses Row Level Security, so the matching database policies protect the Supabase API path but not these queries yet. They hold sample data only.
 - The third entity (treatments) was planned and not built.
 
 ## What I would do next
-1. Add a front-desk role: a staff table and policies so front-desk users can create and edit but not delete, and cannot see treatments.
-2. Stop double bookings in the database with an exclusion constraint on overlapping time ranges, and show a clear message to the person who lost.
-3. Build the treatments table (appointment, procedure, fee) with its own policies and a third chart of income by procedure.
+1. Move the Invoices and Customers data functions from the direct database connection to the Supabase client, so the database enforces the finance role on every query and not just the page guards. Done when no page reads through a direct connection and user one still gets no rows.
+2. Stop double bookings in the database: add an end time and an exclusion constraint on overlapping time ranges, and show "That time is already booked." Done when booking the same slot twice leaves one row.
+3. Add a front-desk role that can create and edit appointments but not delete them, using the same user_roles table. Done when a front-desk test user cannot delete an appointment.
 
 ## Notes
 Chart one uses `patients` only, so the charts were not swapped.
@@ -155,3 +169,4 @@ For today, I need to do smoke testing against the Proposal.md file
  3. Seed data so demo is empty
  4. Demo account that works (patients don't need to login)
  5. Extras if 1-4 are done
+

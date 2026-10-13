@@ -7,6 +7,7 @@ import { InvoicesTableSkeleton } from '@/app/ui/skeletons';
 import { Suspense } from 'react';
 import { fetchInvoicesPages } from '@/app/lib/data';
 import { Metadata } from 'next';
+import { requireFinanceManager } from '@/app/lib/auth';
  
 export const metadata: Metadata = {
   title: 'Invoices | Acme Dashboard',
@@ -18,6 +19,7 @@ export default async function Page(props: {
     page?: string;
   }>;
 }) {
+  await requireFinanceManager();
   const searchParams = await props.searchParams;
   const query = searchParams?.query || '';
   const currentPage = Number(searchParams?.page) || 1;

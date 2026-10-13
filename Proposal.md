@@ -13,7 +13,7 @@ practice needs more consulting days and how to cut missed appointments.
 | Entity | Replaces | Fields (name: type) |
 |---|---|---|
 | patients | customers | id: uuid, user_id: uuid, full_name: text, phone: text, date_of_birth: date, created_at: timestamp |
-| appointments | invoices | id: uuid, user_id: uuid, patient_id: uuid (fk to patients), starts_at: timestamp, status: enum(booked, done, no_show), created_at: timestamp |
+| appointments | invoices | id: uuid, user_id: uuid, patient_id: uuid (fk to patients, on delete cascade), starts_at: timestamp, status: enum(booked, done, no_show), created_at: timestamp |
 | treatments | revenue | id: uuid, user_id: uuid, appointment_id: uuid (fk to appointments), procedure: text, fee_cents: integer, created_at: timestamp |
 
 The Learn tables (`customers`, `invoices`, `revenue`) stay in the database untouched.
@@ -22,13 +22,15 @@ The Learn tables (`customers`, `invoices`, `revenue`) stay in the database untou
 | # | Question it answers | Who acts on the answer | Chart type | Data it needs |
 |---|---|---|---|---|
 | 1 | Is the practice growing? How many new patients joined each month? | owner decides whether to open a second consulting day | bar, one bar per month | count of patients by month of created_at, last 6 months |
-| 2 | What share of this month's appointments are no-shows? | owner decides whether to send reminder messages | donut | appointments this month joined to patients, counted by status |
+| 2 | What share of this month's appointments are no-shows? | owner decides whether to send reminder messages | donut | appointments this month, counted by status |
 
 ## 4. Roles
 | Role | Can see | Can change |
 |---|---|---|
-| owner | everything | everything |
-| front desk | patients and appointments | create and edit patients and appointments; no deletes, no treatments |
+| practice user (default) | own patients, own appointments, own patient files, both charts | create, edit and delete own patients and appointments |
+| finance manager | the same as a practice user, plus the Invoices and Customers pages and the revenue cards | the same as a practice user, plus create, edit and delete invoices |
+
+The finance manager does not see other users' patients or appointments: those are health records and finance does not need them.
 
 ## 5. Stretch
 A "tomorrow" page listing booked appointments with each patient's phone number.
@@ -44,3 +46,4 @@ more than one practice, a mobile app.
 - **Cascade delete:** deleting a patient also deletes their appointments (`on delete cascade`). A real
   practice would keep medical records, so it would drop the cascade and block the delete instead.
 - **Time zone:** times are entered as South African time (+02:00, no daylight saving).
+- **Admin user:** admin cannot see the invoices and customers
