@@ -5,9 +5,9 @@ import { PowerIcon } from '@heroicons/react/24/outline';
 import { signOutAction } from '@/app/lib/actions';
 import { getRole } from '@/app/lib/auth';
 
-const role = await getRole();
+export default async function SideNav() {
+  const role = await getRole();
 
-export default function SideNav() {
   return (
     <div className="flex h-full flex-col px-3 py-4 md:px-2">
       <Link

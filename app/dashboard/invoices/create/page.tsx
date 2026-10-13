@@ -2,10 +2,10 @@ import { requireFinanceManager } from '@/app/lib/auth';
 import Form from '@/app/ui/invoices/create-form';
 import Breadcrumbs from '@/app/ui/invoices/breadcrumbs';
 import { fetchCustomers } from '@/app/lib/data';
- 
-await requireFinanceManager();
+import { requireFinanceManager } from '@/app/lib/auth'; 
 
 export default async function Page() {
+  await requireFinanceManager();
   const customers = await fetchCustomers();
  
   return (
