@@ -6,7 +6,7 @@ import type { AppointmentsByStatusRow } from '@/app/lib/charts';
 
 const DISPLAY: Record<string, string> = { booked: 'Booked', done: 'Done', no_show: 'No-show' };
 // Colour is never the only carrier: every slice also has a text label and the legend repeats the name.
-const COLOURS: Record<string, string> = { Booked: '#2563eb', Done: '#16a34a', 'No-show': '#dc2626' };
+const COLOURS: Record<string, string> = { Booked: '#7FCFC4', Done: '#0F766E', 'No-show': '#E0795B' };
 
 function Slice(props: PieSectorShapeProps) {
   return <Sector {...props} fill={COLOURS[String(props.name)] ?? '#9ca3af'} />;

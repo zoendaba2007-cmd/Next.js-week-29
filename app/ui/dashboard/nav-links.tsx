@@ -33,8 +33,8 @@ export default function NavLinks({ role }: { role: Role }) {
             key={link.name}
             href={link.href}
             className={clsx(
-              'flex h-[48px] grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-sky-100 hover:text-blue-600 md:flex-none md:justify-start md:p-2 md:px-3',
-              { 'bg-sky-100 text-blue-600': pathname === link.href },
+              'flex h-[48px] grow items-center justify-center gap-2 rounded-md p-3 text-sm font-medium text-clinic-side hover:bg-white/10 md:flex-none md:justify-start md:p-2 md:px-3',
+              { 'bg-white/20 font-bold': pathname === link.href },
             )}
           >
             <LinkIcon className="w-6" />

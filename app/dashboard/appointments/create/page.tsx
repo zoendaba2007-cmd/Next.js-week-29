@@ -11,7 +11,7 @@ export default async function Page() {
       {patients.length === 0 ? (
         <p className="text-sm text-gray-600">
           You need a patient first.{' '}
-          <Link href="/dashboard/patients/create" className="text-blue-600 underline">
+          <Link href="/dashboard/patients/create" className="text-clinic-primary underline">
             Add a patient
           </Link>
           .

@@ -7,7 +7,7 @@ export default function NotFound() {
       <p>Could not find the requested appointment.</p>
       <Link
         href="/dashboard/appointments"
-        className="mt-4 rounded-md bg-blue-500 px-4 py-2 text-sm text-white hover:bg-blue-400"
+        className="mt-4 rounded-md bg-clinic-primary px-4 py-2 text-sm text-white hover:bg-clinic-dark"
       >
         Go back
       </Link>

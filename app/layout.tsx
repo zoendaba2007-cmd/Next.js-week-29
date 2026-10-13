@@ -3,9 +3,9 @@ import { inter } from '@/app/ui/fonts';
 import { Metadata } from 'next';
  
 export const metadata: Metadata = {
-  title: 'Acme Dashboard',
-  description: 'The official Next.js Course Dashboard, built with App Router.',
-  metadataBase: new URL('https://next-learn-dashboard.vercel.sh'),
+  title: { template: '%s | Medic Clinic', default: 'Medic Clinic' },
+  description: 'Patients, appointments and practice insights for a small clinic.',
+  metadataBase: new URL('https://week-29.vercel.app'),
 };
 
 export default function RootLayout({

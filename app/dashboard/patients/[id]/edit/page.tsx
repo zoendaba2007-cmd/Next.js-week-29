@@ -29,7 +29,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
       {fileUrl && (
         <p className="mt-6 text-sm">
-          <a href={fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 underline">
+          <a href={fileUrl} target="_blank" rel="noreferrer" className="text-clinic-primary underline">
             View current file
           </a>{' '}
           (link expires in 60 seconds)

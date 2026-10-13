@@ -6,7 +6,7 @@ export function CreatePatient() {
   return (
     <Link
       href="/dashboard/patients/create"
-      className="flex h-10 items-center rounded-lg bg-blue-600 px-4 text-sm font-medium text-white transition-colors hover:bg-blue-500"
+      className="flex h-10 items-center rounded-lg bg-clinic-primary px-4 text-sm font-medium text-white transition-colors hover:bg-clinic-dark"
     >
       <span className="hidden md:block">Add patient</span>
       <PlusIcon className="h-5 md:ml-4" />

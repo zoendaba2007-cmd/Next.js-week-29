@@ -13,7 +13,7 @@ export default function PatientsPerMonthChart({ rows }: { rows: PatientsPerMonth
           allowDecimals={false}
           label={{ value: 'New patients (count)', angle: -90, position: 'insideLeft' }}
         />
-        <Bar dataKey="new_patients" fill="#3b82f6" />
+        <Bar dataKey="new_patients" fill="#0F766E" />
       </BarChart>
     </ResponsiveContainer>
   );
