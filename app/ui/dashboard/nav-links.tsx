@@ -7,6 +7,7 @@ import {
   HeartIcon,
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
+import type { Role } from '@/app/lib/auth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';

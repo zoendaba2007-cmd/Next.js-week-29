@@ -1,5 +1,6 @@
 'use server';
 
+import { requireFinanceManager } from '@/app/lib/auth';
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
