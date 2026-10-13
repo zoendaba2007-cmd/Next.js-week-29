@@ -43,11 +43,12 @@ Next.js (App Router, Server Components, Server Actions), TypeScript, Tailwind CS
 2. Create .env.local in the project root with these variable NAMES (values from your own Supabase project; never commit this file):
    NEXT_PUBLIC_SUPABASE_URL
    NEXT_PUBLIC_SUPABASE_ANON_KEY   (holds the publishable key)
-   POSTGRES_URL   (only for the sample Invoices and Customers pages from the Next.js course)
 3. In the Supabase SQL Editor, run the files in the supabase/ folder in this order:
    patients.sql, patients_per_month.sql, appointments.sql, appointments_by_status.sql, patient_files.sql, finance_role.sql
 4. In Supabase, create a user under Authentication -> Users with Auto Confirm ticked.
 5. Run pnpm dev and open http://localhost:3000.
+
+Invoices, customers, and revenue are read from the same Supabase project configured above. Their tables and any demo seed rows must exist in that project; local data in another database is not deployed automatically. Set the same Supabase project URL and anon key in Vercel's environment variables, then redeploy. Assign the finance manager's `user_roles` row in that Supabase project's SQL Editor.
 
 ## Chart honesty checklist (both charts)
 - [ ] The title states the question the chart answers
@@ -97,13 +98,12 @@ RLS: user B cannot see or edit user A's patients or appointments (checked <date>
 - Deleting a patient also deletes their appointments (on delete cascade). A real practice would keep records and block the delete instead.
 - Times are entered in South African time (+02:00, no daylight saving).
 - Storage: one file per patient, replaced on each upload; no virus scan.
-- The finance role on Invoices and Customers is enforced by a guard on each page and Server Action. Those pages still query through a direct database connection, which bypasses Row Level Security, so the matching database policies protect the Supabase API path but not these queries yet. They hold sample data only.
+- Invoices, Customers, and the finance-only dashboard widgets are read through the authenticated Supabase client. The finance role is checked by each page and Server Action and enforced again by Supabase Row Level Security.
 - The third entity (treatments) was planned and not built.
 
 ## What I would do next
-1. Move the Invoices and Customers data functions from the direct database connection to the Supabase client, so the database enforces the finance role on every query and not just the page guards. Done when no page reads through a direct connection and user one still gets no rows.
-2. Stop double bookings in the database: add an end time and an exclusion constraint on overlapping time ranges, and show "That time is already booked." Done when booking the same slot twice leaves one row.
-3. Add a front-desk role that can create and edit appointments but not delete them, using the same user_roles table. Done when a front-desk test user cannot delete an appointment.
+1. Stop double bookings in the database: add an end time and an exclusion constraint on overlapping time ranges, and show "That time is already booked." Done when booking the same slot twice leaves one row.
+2. Add a front-desk role with carefully scoped patient and appointment permissions. Done when a front-desk test user cannot delete an appointment.
 
 ## Notes
 Chart one uses `patients` only, so the charts were not swapped.
@@ -169,4 +169,3 @@ For today, I need to do smoke testing against the Proposal.md file
  3. Seed data so demo is empty
  4. Demo account that works (patients don't need to login)
  5. Extras if 1-4 are done
-

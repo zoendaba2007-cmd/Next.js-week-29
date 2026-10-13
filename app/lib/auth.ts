@@ -10,11 +10,17 @@ export const getRole = cache(async (): Promise<Role> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('user_roles')
     .select('role')
     .eq('user_id', user.id)
     .maybeSingle();
+  if (error) {
+    console.error('Supabase role lookup failed:', error);
+    throw new Error('Failed to determine the signed-in user role.', {
+      cause: error,
+    });
+  }
 
   return data?.role === 'finance_manager' ? 'finance_manager' : 'practice';
 });
