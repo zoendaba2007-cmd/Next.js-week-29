@@ -272,6 +272,7 @@ export type AppointmentState = {
 function appointmentDbMessage(code: string | undefined, verb: string): string {
   if (code === '23503') return 'That patient does not exist.';
   if (code === '42501') return 'Not allowed: that patient is not yours.';
+  if (code === '23P01') return 'That time overlaps another booked appointment. Choose a different time.';
   return `Database error ${code}: failed to ${verb} appointment.`;
 }
 

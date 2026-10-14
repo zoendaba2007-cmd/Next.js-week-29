@@ -4,6 +4,7 @@ import {
   UserGroupIcon,
   HomeIcon,
   DocumentDuplicateIcon,
+  DocumentTextIcon,
   HeartIcon,
   CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
@@ -15,6 +16,7 @@ import clsx from 'clsx';
 const links = [
   { name: 'Home', href: '/dashboard', icon: HomeIcon, roles: ['practice', 'finance_manager'] },
   { name: 'Patients', href: '/dashboard/patients', icon: HeartIcon, roles: ['practice', 'finance_manager'] },
+  { name: 'Documents', href: '/dashboard/documents', icon: DocumentTextIcon, roles: ['practice', 'finance_manager'] },
   { name: 'Appointments', href: '/dashboard/appointments', icon: CalendarDaysIcon, roles: ['practice', 'finance_manager'] },
   { name: 'Invoices', href: '/dashboard/invoices', icon: DocumentDuplicateIcon, roles: ['finance_manager'] },
   { name: 'Customers', href: '/dashboard/customers', icon: UserGroupIcon, roles: ['finance_manager'] },

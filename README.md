@@ -25,7 +25,7 @@ Both are demo-only accounts with seed data; they are not real people.
    NEXT_PUBLIC_SUPABASE_ANON_KEY   (holds the publishable key)
    POSTGRES_URL   (only for the Invoices and Customers pages from the Next.js course)
 3. In the Supabase SQL Editor, run the files in the supabase/ folder in this order:
-   patients.sql, patients_per_month.sql, appointments.sql, appointments_by_status.sql, patient_files.sql, finance_role.sql
+   patients.sql, patients_per_month.sql, appointments.sql, appointments_prevent_double_booking.sql, appointments_by_status.sql, patient_files.sql, finance_role.sql
 4. Create a user under Authentication -> Users with Auto Confirm ticked. 
 5. Run pnpm dev and open http://localhost:3000.
 
@@ -39,7 +39,8 @@ Both are demo-only accounts with seed data; they are not real people.
 
 ## 5. Known limitations
 - Only two roles exist: a practice user (own rows only) and a finance manager. There is no finer permission, for example a front-desk role that can create but not delete.
-- Two people can book the same appointment slot; the app assumes one calendar owner.
+- Appointments last 30 minutes. Booked appointments for the same practice cannot overlap; completed and no-show appointments do not block a time. Currently not worrking
+- If appointments_prevent_double_booking.sql reports existing overlapping bookings, resolve those conflicts before rerunning the migration.
 - The finance role on Invoices and Customers is enforced by a guard on each page and Server Action. Those pages still query through a direct database connection, which bypasses Row Level Security, so the database policies protect the API path but not these queries yet. They hold sample data only.
 - Deleting a patient also deletes their appointments (on delete cascade). A real practice would keep records and block the delete instead.
 - Times are entered in South African time (+02:00, no daylight saving).
@@ -48,8 +49,7 @@ Both are demo-only accounts with seed data; they are not real people.
 
 ## 6. What I would do next
 1. Move the Invoices and Customers data functions from the direct database connection to the Supabase client, so the database enforces the finance role on every query and not just the page guards. Done when no page reads through a direct connection and user one still gets no rows.
-2. Stop double bookings in the database: add an end time and an exclusion constraint on overlapping time ranges, and show "That time is already booked." Done when booking the same slot twice leaves one row.
-3. Add a front-desk role that can create and edit appointments but not delete them, using the same user_roles table. Done when a front-desk test user cannot delete an appointment.
+2. Add a front-desk role that can create and edit appointments but not delete them, using the same user_roles table. Done when a front-desk test user cannot delete an appointment.
 
 ---
 
@@ -95,6 +95,7 @@ RLS: user B cannot see or edit user A's patients or appointments .
 
 ### Cut (one honest sentence each)
 - Third entity (treatments): not built; both existing entities have full CRUD behind RLS and both charts are finished, and a half-built third table would add risk.
+- Prevent double booking :built but not implemented. Haven't ran sql
 
 ### Polish (max 3, cosmetic or README-only)
 1. Apply the Calm Teal colour scheme and add a screenshot of each chart to this README.

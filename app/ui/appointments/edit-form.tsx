@@ -42,7 +42,7 @@ export default function EditAppointmentForm({
         </div>
 
         <div className="mb-4">
-          <label htmlFor="starts_at" className="mb-2 block text-sm font-medium">Date and time</label>
+          <label htmlFor="starts_at" className="mb-2 block text-sm font-medium">Date and time (30-minute appointment)</label>
           <input
             id="starts_at"
             name="starts_at"
